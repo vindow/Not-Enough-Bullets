@@ -35,20 +35,9 @@ struct Laser {
 enum StateType {
 	STATE_SPLASH_SCREEN,
 	STATE_MAIN_MENU,
-	STATE_PLAYING,
-	STATE_GAME_OVER
-};
-enum EventType {
-	ET_PLAYER_LASER_COLLISION,
-	ET_ENEMY_LASER_COLLISION,
-	ET_ENEMY_PLAYER_COLLISION,
-	ET_VICTORY,
-	ET_GAME_START
-};
-struct Event {
-	EventType ev;
-	int laserindex;
-	int enemyindex;
+	STATE_GAME_OVER,
+	STATE_VICTORY,
+	STATE_PLAYING
 };
 
 std::vector<Laser> plasers;
@@ -66,154 +55,90 @@ int enemy1w;
 int enemy1h;
 int enemy2w;
 int enemy2h;
-StateType gameState;
+StateType gameState = STATE_SPLASH_SCREEN;
 GLuint playersprite;
 GLuint enemy1sprite;
 GLuint enemy2sprite;
 
+void init() {
+	for (int i = 0; i<100; i++)
+	{
 
-void HandleEvent(Event* event) {
-	switch (event->ev) {
-	case 0:
-		//spawn debris, remove player, remove laser, remove life,maybe gameover
-
-		gameover = true;
-		elasers[event->laserindex] = elasers[elasers.size() - 1];
-		elasers.pop_back();
-		player->box->x = 150;
-		player->box->y = camera->y + camera->h;
-		break;
-	case 1:
-		//remove enemy, remove laser
-		/*plasers[event->laserindex] = plasers[plasers.size() - 1];
-		plasers.pop_back();*/
-		enemies[event->enemyindex] = enemies[enemies.size() - 1];
-		enemies.pop_back();
-		break;
-	case 2:
-		//remove enemy and player, gameover
-		gameover = true;
-		enemies[event->enemyindex] = enemies[enemies.size() - 1];
-		enemies.pop_back();
-		player->box->x = 150;
-		player->box->y = camera->y + camera->h;
-		break;
-	case 3:
-		//set victory flag to yes, running to no
-		gamestart = false;
-		gameover = false;
-		victory = true;
-		break;
-	case 4:
-		//set gamestart to true, initialize enemies
-		gamestart = true;
-		gameover = false;
-		victory = false;
-
-		
-		for (int i = 0; i<100; i++)
+		int random = rand() % 100 + 1;
+		struct AABB* ebox1 = new struct AABB;
+		ebox1->h = enemy1h;
+		ebox1->w = enemy1w;
+		if (random <= 25)
 		{
-
-			int random = rand() % 100 + 1;
-			struct AABB* ebox1 = new struct AABB;
-			ebox1->h = enemy1h;
-			ebox1->w = enemy1w;
-			if (random <= 25)
-			{
-				ebox1->x = 25;
-			}
-			else if (random >25 && random <= 50)
-			{
-				ebox1->x = 300;
-			}
-			else if (random >50 && random <= 75)
-			{
-				ebox1->x = 200;
-			}
-			else if (random > 75 && random <= 100)
-			{
-				ebox1->x = 100;
-			}
-
-			ebox1->y = 56500 - (535 * i);
-
-			struct EnemyData* enemy1 = new struct EnemyData;
-			enemy1->sprite = enemy1sprite;
-			enemy1->box = ebox1;
-			enemy1->cooldown = 0;
-			enemy1->movespeed = 2;
-			enemies.push_back(*enemy1);
-
+			ebox1->x = 25;
+		}
+		else if (random >25 && random <= 50)
+		{
+			ebox1->x = 300;
+		}
+		else if (random >50 && random <= 75)
+		{
+			ebox1->x = 200;
+		}
+		else if (random > 75 && random <= 100)
+		{
+			ebox1->x = 100;
 		}
 
-		for (int j = 0; j<50; j++)
+		ebox1->y = 56500 - (535 * i);
+
+		struct EnemyData* enemy1 = new struct EnemyData;
+		enemy1->sprite = enemy1sprite;
+		enemy1->box = ebox1;
+		enemy1->cooldown = 0;
+		enemy1->movespeed = 2;
+		enemies.push_back(*enemy1);
+
+	}
+
+	for (int j = 0; j<50; j++)
+	{
+		int random = rand() % 100 + 1;
+		struct AABB* ebox2 = new struct AABB;
+		ebox2->h = enemy2h;
+		ebox2->w = enemy2w;
+		if (random <= 25)
 		{
-			int random = rand() % 100 + 1;
-			struct AABB* ebox2 = new struct AABB;
-			ebox2->h = enemy2h;
-			ebox2->w = enemy2w;
-			if (random <= 25)
-			{
-				ebox2->x = 50;
-			}
-			else if (random >25 && random <= 50)
-			{
-				ebox2->x = 250;
-			}
-			else if (random >50 && random <= 75)
-			{
-				ebox2->x = 350;
-			}
-			else if (random > 75 && random <= 100)
-			{
-				ebox2->x = 75;
-			}
-			ebox2->y = 56000 - (j * 530);
-
-			struct EnemyData* enemy2 = new struct EnemyData;
-			enemy2->sprite = enemy2sprite;
-			enemy2->box = ebox2;
-			enemy2->cooldown = 0;
-			enemy2->movespeed = 2;
-			enemies.push_back(*enemy2);
+			ebox2->x = 50;
 		}
-		playerbox->h = playerh;
-		playerbox->w = playerw;
-		playerbox->x = 150;
-		playerbox->y = 60600;
+		else if (random >25 && random <= 50)
+		{
+			ebox2->x = 250;
+		}
+		else if (random >50 && random <= 75)
+		{
+			ebox2->x = 350;
+		}
+		else if (random > 75 && random <= 100)
+		{
+			ebox2->x = 75;
+		}
+		ebox2->y = 56000 - (j * 530);
 
-		player->box = playerbox;
-
-		camera->x = 0;
-		camera->y = 60000;
-		camera->h = 600;
-		camera->w = 400;
-		break;
-	default:
-		break;
+		struct EnemyData* enemy2 = new struct EnemyData;
+		enemy2->sprite = enemy2sprite;
+		enemy2->box = ebox2;
+		enemy2->cooldown = 0;
+		enemy2->movespeed = 2;
+		enemies.push_back(*enemy2);
 	}
+	playerbox->h = playerh;
+	playerbox->w = playerw;
+	playerbox->x = 150;
+	playerbox->y = 60600;
+
+	player->box = playerbox;
+
+	camera->x = 0;
+	camera->y = 60000;
+	camera->h = 600;
+	camera->w = 400;
 }
-
-std::vector<Event> eventQueue;
-
-void initEventQueue(void) {
-	eventQueue.reserve(16);
-}
-
-void QueueEvent(Event* ev)
-{
-	eventQueue.push_back(*ev);
-}
-
-void UpdateEventQueue(void)
-{
-	int i;
-	for (i = 0; i < eventQueue.size(); ++i) {
-		HandleEvent(&eventQueue[i]);
-	}
-	eventQueue.clear(); //< note: keeps memory around
-}
-
 
 bool AABBIntersect(const AABB* box1, const AABB* box2)
 {
@@ -272,9 +197,8 @@ bool checkPixCollision(AABB* b1, AABB* b2, AABB intersect, bool left, bool up) {
 
 int main(void)
 {
-	gameState = STATE_SPLASH_SCREEN;
 	bool shouldExit = false;
-	// Initialize SDL
+	// ---------------Initialize SDL and OpenGL stuff---------------
 	if (SDL_Init(SDL_INIT_VIDEO) < 0) {
 		return 1;
 	}
@@ -302,10 +226,9 @@ int main(void)
 		return 1;
 	}
 
+	//Setup keyboard input
 	Uint8 prevKeys[SDL_NUM_SCANCODES] = { 0 };
 	const Uint8* currentKeys = SDL_GetKeyboardState(NULL);
-
-	initEventQueue();
 
 	playersprite = glTexImageTGAFile("playerShip3_green.tga", &playerw, &playerh);
 	
@@ -323,8 +246,10 @@ int main(void)
 	std::vector<long long int> enemylaser8bitmap;
 	GLuint enemylasersprite8 = glTexImageTGAFileBitmap("laserRed08.tga", &enemylaser8w, &enemylaser8h, enemylaser8bitmap);
 
-	int titlew = 0;
-	int titleh = 0;
+	int splashscreenw = 0, splashscreenh = 0;
+	GLuint splashScreen = glTexImageTGAFile("SplashScreen.tga", &splashscreenw, &splashscreenh);
+
+	int titlew = 0, titleh = 0;
 	GLuint titlesprite = glTexImageTGAFile("TitleScreen.tga", &titlew, &titleh);
 
 	int victoryw = 0;
@@ -371,16 +296,6 @@ int main(void)
 	
 
 	while (!shouldExit) {
-		switch (gameState) {
-		case 0:
-			break;
-		case 1:
-			break;
-		case 2:
-			break;
-		case 3:
-			break;
-		}
 		// Handle OS message pump
 		SDL_Event event;
 		memcpy(prevKeys, currentKeys, sizeof(prevKeys));
@@ -391,40 +306,37 @@ int main(void)
 				return 0;
 			}
 		}
-		if (gameover) {
-			glDrawSprite(gameoversprite, 0, 0, gameoverw, gameoverh);
+		switch (gameState) {
+		case 0: //Splash Screen
+			glDrawSprite(splashScreen, 0, 0, splashscreenw, splashscreenh);
 			currentKeys = SDL_GetKeyboardState(NULL);
 			if (currentKeys[SDL_SCANCODE_SPACE]) {
-				
-				struct Event* newEvent = new struct Event;
-				newEvent->ev = ET_GAME_START;
-				QueueEvent(newEvent);
+				gameState = STATE_MAIN_MENU;
 			}
-			UpdateEventQueue();
-		}
-		else if (victory) {
-			glDrawSprite(victorysprite, 0, 0, victoryw, victoryh);
-			currentKeys = SDL_GetKeyboardState(NULL);
-			if (currentKeys[SDL_SCANCODE_SPACE]) {
-				struct Event* newEvent = new struct Event;
-				newEvent->ev = ET_GAME_START;
-				QueueEvent(newEvent);
-			}
-			UpdateEventQueue();
-		}
-		else if (!gamestart && !victory && !gameover) {
+			break;
+		case 1: //Main Menu
 			glDrawSprite(titlesprite, 0, 0, titlew, titleh);
 			currentKeys = SDL_GetKeyboardState(NULL);
 			if (currentKeys[SDL_SCANCODE_SPACE]) {
-				struct Event* newEvent = new struct Event;
-				newEvent->ev = ET_GAME_START;
-				QueueEvent(newEvent);
+				gameState = STATE_PLAYING;
+				init();
 			}
-			UpdateEventQueue();
-		}
-		else {
-
+			break;
+		case 2: //Game Over
+			glDrawSprite(gameoversprite, 0, 0, gameoverw, gameoverh);
+			currentKeys = SDL_GetKeyboardState(NULL);
+			if (currentKeys[SDL_SCANCODE_SPACE]) {
+				gameState = STATE_PLAYING;
+				init();
+			}
+			break;
+		case 3: //Victory
+			glDrawSprite(victorysprite, 0, 0, victoryw, victoryh);
+			break;
+		case 4: //Playing
+			//----------------TODO: Make seperate process input -> update AI/Physics -> render steps
 			//Cap framerate
+		{
 			int tick = SDL_GetTicks();
 			do {
 				SDL_Delay(std::max(0, ticksPerFrame - (tick - prevTick)));
@@ -432,7 +344,7 @@ int main(void)
 			} while (ticksPerFrame - (tick - prevTick) > 0);
 			prevTick = tick;
 
-			//update input, move player
+			//update/process input, move player
 			currentKeys = SDL_GetKeyboardState(NULL);
 			if (currentKeys[SDL_SCANCODE_LEFT]) {
 				player->box->x -= 3;
@@ -522,9 +434,7 @@ int main(void)
 
 			}
 			if (enemies.size() == 0) {
-				struct Event* newEvent = new struct Event;
-				newEvent->ev = ET_VICTORY;
-				QueueEvent(newEvent);
+				gameState = STATE_VICTORY;
 			}
 			if (firecooldown != 0) {
 				firecooldown--;
@@ -549,39 +459,39 @@ int main(void)
 				int elaserssize = elasers.size();
 				for (i = 0; i < enemiessize; i++) {
 					for (j = 0; j < plaserssize; j++) {
-						if (AABBIntersect(enemies[i].box, plasers[j].box)) {
-							struct Event* newEvent = new struct Event;
-							newEvent->ev = ET_ENEMY_LASER_COLLISION;
-							newEvent->enemyindex = i;
-							newEvent->laserindex = j;
-							QueueEvent(newEvent);
-
+						if (AABBIntersect(enemies[i].box, plasers[j].box)) { //Player laser hits enemy
+							plasers[j] = plasers[plasers.size() - 1];
+							plasers.pop_back();
+							enemies[i] = enemies[enemies.size() - 1];
+							enemies.pop_back();
 						}
 					}
 				}
 				for (i = 0; i < enemiessize; i++) {
-					if (AABBIntersect(enemies[i].box, player->box)) {
-						struct Event* newEvent = new struct Event;
-						newEvent->ev = ET_ENEMY_PLAYER_COLLISION;
-						newEvent->enemyindex = i;
-						QueueEvent(newEvent);
-
+					if (AABBIntersect(enemies[i].box, player->box)) { //Enemy hits player
+						enemies[i] = enemies[enemies.size() - 1];
+						enemies.pop_back();
+						player->box->x = 150;
+						player->box->y = camera->y + camera->h;
+						gameState = STATE_GAME_OVER;
 					}
 				}
 				for (i = 0; i < elaserssize; i++) {
-					if (AABBIntersect(player->box, elasers[i].box)) {
-						struct Event* newEvent = new struct Event;
-						newEvent->ev = ET_PLAYER_LASER_COLLISION;
-						newEvent->laserindex = i;
-						QueueEvent(newEvent);
+					if (AABBIntersect(player->box, elasers[i].box)) { //Enemy laser hits player
+						elasers[i] = elasers[elasers.size() - 1];
+						elasers.pop_back();
+						player->box->x = 150;
+						player->box->y = camera->y + camera->h;
+						gameState = STATE_GAME_OVER;
 					}
 				}
 				prevPhysicsTick += ticksPerPhysics;
-				UpdateEventQueue();
 			}
+			break;
 		}
-		
-
+		default:
+			break;
+		}
 
 		SDL_GL_SwapWindow(window);
 	}

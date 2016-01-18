@@ -41,11 +41,11 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <IncludePath>C:\Users\Alvin\Documents\Visual Studio 2015\glew-1.10.0\include;C:\Users\Alvin\Documents\Visual Studio 2015\SDL2-2.0.1\include;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Users\Alvin\Documents\Visual Studio 2013\SDL2-2.0.1\lib\x86;C:\Users\Alvin\Documents\Visual Studio 2013\glew-1.10.0\lib\Release\Win32;$(LibraryPath)</LibraryPath>
+    <LibraryPath>C:\Users\Alvin\Documents\Visual Studio 2015\SDL2-2.0.1\lib\x86;C:\Users\Alvin\Documents\Visual Studio 2015\glew-1.10.0\lib\Release\Win32;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <IncludePath>C:\Users\Alvin\Documents\Visual Studio 2015\glew-1.10.0\include;C:\Users\Alvin\Documents\Visual Studio 2015\SDL2-2.0.1\include;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Users\Alvin\Documents\Visual Studio 2013\SDL2-2.0.1\lib\x86;C:\Users\Alvin\Documents\Visual Studio 2013\glew-1.10.0\lib\Release\Win32;$(LibraryPath)</LibraryPath>
+    <LibraryPath>C:\Users\Alvin\Documents\Visual Studio 2015\SDL2-2.0.1\lib\x86;C:\Users\Alvin\Documents\Visual Studio 2015\glew-1.10.0\lib\Release\Win32;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
