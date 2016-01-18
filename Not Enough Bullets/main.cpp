@@ -55,10 +55,13 @@ int enemy1w;
 int enemy1h;
 int enemy2w;
 int enemy2h;
+int tilew = 40;
+int tileh = 40;
 StateType gameState = STATE_SPLASH_SCREEN;
 GLuint playersprite;
 GLuint enemy1sprite;
 GLuint enemy2sprite;
+GLuint background[2][240];
 
 void init() {
 	for (int i = 0; i<100; i++)
@@ -159,6 +162,32 @@ bool AABBIntersect(const AABB* box1, const AABB* box2)
 		return false;
 	}
 	return true;
+}
+
+void drawAll()
+{
+	int i;
+	//draw the background that is onscreen
+	for (int i = 0; i < 2; i++) {
+		for (int j = floor(camera->y / tileh); j < floor(camera->y / tileh) + 4; j++) {
+			glDrawSprite(background[i][j], i * tilew - camera->x, j * tileh - camera->y, tileh, tilew);
+		}
+	}
+	//draw the player's lasers, kill offscreen ones, move live ones
+	for (i = 0; i < plasers.size(); i++) {
+		glDrawSprite(plasers[i].sprite, plasers[i].box->x - camera->x, plasers[i].box->y - camera->y, plasers[i].box->w, plasers[i].box->h);
+	}
+	//draw enemy lasers, kill offscreen enemy lasers
+	for (i = 0; i < elasers.size(); i++) {
+		glDrawSprite(elasers[i].sprite, elasers[i].box->x - camera->x, elasers[i].box->y - camera->y, elasers[i].box->w, elasers[i].box->h);
+	}
+	//draw enemies that are onscreen
+	for (i = 0; i < enemies.size(); i++) {
+		if (AABBIntersect(camera, enemies[i].box))
+			glDrawSprite(enemies[i].sprite, enemies[i].box->x - camera->x, enemies[i].box->y - camera->y, enemies[i].box->w, enemies[i].box->h);
+	}
+	//draw the player
+	glDrawSprite(player->sprite, player->box->x - camera->x, player->box->y - camera->y, player->box->w, player->box->h);
 }
 
 bool checkPixCollision(AABB* b1, AABB* b2, AABB intersect, bool left, bool up) {
@@ -265,8 +294,7 @@ int main(void)
 	camera->h = 600;
 	camera->w = 400;
 	
-	int width = 40;
-	int height = 40;
+	
 	glViewport(0, 0, 400, 600);
 	glMatrixMode(GL_PROJECTION);
 	glOrtho(0, 400, 600, 0, 0, 1);
@@ -275,10 +303,10 @@ int main(void)
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glEnable(GL_ALPHA_TEST);
 	glAlphaFunc(GL_GREATER, 0.04);
-	GLuint spaceTex = glTexImageTGAFile("blue.tga", &width, &height);
+	GLuint spaceTex = glTexImageTGAFile("blue.tga", &tilew, &tileh);
 
 
-	GLuint background[2][240];
+	
 	for (int i = 0; i < 2; i++) {
 		for (int j = 0; j < 240; j++) {
 			background[i][j] = spaceTex;
@@ -334,9 +362,8 @@ int main(void)
 			glDrawSprite(victorysprite, 0, 0, victoryw, victoryh);
 			break;
 		case 4: //Playing
-			//----------------TODO: Make seperate process input -> update AI/Physics -> render steps
-			//Cap framerate
 		{
+			//Cap framerate
 			int tick = SDL_GetTicks();
 			do {
 				SDL_Delay(std::max(0, ticksPerFrame - (tick - prevTick)));
@@ -359,6 +386,7 @@ int main(void)
 				player->box->y += 3;
 			}
 			if (currentKeys[SDL_SCANCODE_SPACE] && firecooldown == 0) {
+				//create hitbox for laser
 				struct AABB* plaserbox = new struct AABB;
 				plaserbox->h = playerlaserh;
 				plaserbox->w = playerlaserw;
@@ -366,80 +394,76 @@ int main(void)
 				plaserbox->y = player->box->y - playerlaserh + 10;
 				plaserbox->bitmap = &playerlaserbitmap;
 
+				//create laser and attach hitbox
 				struct Laser* plaser = new struct Laser;
 				plaser->box = plaserbox;
 				plaser->sprite = playerlasersprite;
 				plaser->alliance = 0;
 
+				//add laser and reset shot cooldown
 				plasers.push_back(*plaser);
 				firecooldown = 20;
 			}
 
-			//autoscroll camera
+			//autoscroll camera and automove player to be level with camera
 			camera->y -= 5;
 			player->box->y -= 5;
-			//Draw the tiles
-			for (int i = 0; i < 2; i++) {
-				for (int j = floor(camera->y / height); j < floor(camera->y / height) + 4; j++) {
-					glDrawSprite(background[i][j], i * width - camera->x, j * height - camera->y, height, width);
-				}
-			}
 
-			//draw the player's lasers, kill offscreen ones, move live ones
+			//move the NPCs, depsawn offscreen ones
 			int i;
-			for (i = 0; i < plasers.size(); i++) {
-				plasers[i].box->y -= 20;
-				if (plasers[i].box->y < camera->y) {
-					plasers[i] = plasers[plasers.size() - 1];
-					plasers.pop_back();
-				}
-				glDrawSprite(plasers[i].sprite, plasers[i].box->x - camera->x, plasers[i].box->y - camera->y, plasers[i].box->w, plasers[i].box->h);
-			}
-			//draw enemy lasers, kill offscreen enemy lasers
-			for (i = 0; i < elasers.size(); i++) {
-				glDrawSprite(elasers[i].sprite, elasers[i].box->x - camera->x, elasers[i].box->y - camera->y, elasers[i].box->w, elasers[i].box->h);
-				if (elasers[i].box->y > camera->h + camera->y) {
-					elasers[i] = elasers[elasers.size() - 1];
-					elasers.pop_back();
-				}
-			}
-			//draw the player
-			glDrawSprite(player->sprite, player->box->x - camera->x, player->box->y - camera->y, player->box->w, player->box->h);
-
-			//draw and move the drawn the NPCs, depsawn the exited ones
 			for (i = 0; i < enemies.size(); i++) {
 				if (AABBIntersect(camera, enemies[i].box)) {
-					glDrawSprite(enemies[i].sprite, enemies[i].box->x - camera->x, enemies[i].box->y - camera->y, enemies[i].box->w, enemies[i].box->h);
-					if (enemies[i].cooldown == 0) {
-						enemies[i].cooldown = 50;
+					if (enemies[i].cooldown == 0) { //fire enemy laser
+						//create enemy laser hitbox
 						struct AABB* elaserbox = new struct AABB;
 						elaserbox->h = enemylaser8h;
 						elaserbox->w = enemylaser8w;
 						elaserbox->x = enemies[i].box->x + enemies[i].box->w / 2;
 						elaserbox->y = enemies[i].box->y + enemies[i].box->h;
 
+						//create enemy laser and attach hitbox
 						struct Laser* elaser = new struct Laser;
 						elaser->alliance = 1;
 						elaser->box = elaserbox;
 						elaser->sprite = enemylasersprite8;
 
+						//add enemy laser to vector and reset shot cooldown
 						elasers.push_back(*elaser);
+						enemies[i].cooldown = 50;
 					}
 					enemies[i].box->y -= enemies[i].movespeed;
 				}
-				if (enemies[i].box->y > camera->h + camera->y) {
+				if (enemies[i].box->y > camera->h + camera->y) { //check if enemy is offscreen
 					enemies[i] = enemies[enemies.size() - 1];
 					enemies.pop_back();
 				}
-
 			}
+			//move player lasers and despawn offscreen ones
+			for (i = 0; i < plasers.size(); i++) {
+				plasers[i].box->y -= 20;
+				if (plasers[i].box->y < camera->y) {
+					plasers[i] = plasers[plasers.size() - 1];
+					plasers.pop_back();
+				}
+			}
+			//"move" enemy lasers and despawn offscreen ones
+			for (i = 0; i < elasers.size(); i++) {
+				if (elasers[i].box->y > camera->h + camera->y) {
+					elasers[i] = elasers[elasers.size() - 1];
+					elasers.pop_back();
+				}
+			}
+
 			if (enemies.size() == 0) {
 				gameState = STATE_VICTORY;
 			}
+
 			if (firecooldown != 0) {
+				//decrement the fire cooldown timer
 				firecooldown--;
 			}
-			// Update physics
+
+			// Update physics (collisions)
 			while (tick > prevPhysicsTick + ticksPerPhysics) {
 				if (player->box->x < 0) {
 					player->box->x = 0;
@@ -454,11 +478,8 @@ int main(void)
 					player->box->y = camera->y;
 				}
 				int i, j, intersecth, intersectw;
-				int enemiessize = enemies.size();
-				int plaserssize = plasers.size();
-				int elaserssize = elasers.size();
-				for (i = 0; i < enemiessize; i++) {
-					for (j = 0; j < plaserssize; j++) {
+				for (i = 0; i < enemies.size(); i++) {
+					for (j = 0; j < plasers.size(); j++) {
 						if (AABBIntersect(enemies[i].box, plasers[j].box)) { //Player laser hits enemy
 							plasers[j] = plasers[plasers.size() - 1];
 							plasers.pop_back();
@@ -467,7 +488,7 @@ int main(void)
 						}
 					}
 				}
-				for (i = 0; i < enemiessize; i++) {
+				for (i = 0; i < enemies.size(); i++) {
 					if (AABBIntersect(enemies[i].box, player->box)) { //Enemy hits player
 						enemies[i] = enemies[enemies.size() - 1];
 						enemies.pop_back();
@@ -476,7 +497,7 @@ int main(void)
 						gameState = STATE_GAME_OVER;
 					}
 				}
-				for (i = 0; i < elaserssize; i++) {
+				for (i = 0; i < elasers.size(); i++) {
 					if (AABBIntersect(player->box, elasers[i].box)) { //Enemy laser hits player
 						elasers[i] = elasers[elasers.size() - 1];
 						elasers.pop_back();
@@ -487,6 +508,7 @@ int main(void)
 				}
 				prevPhysicsTick += ticksPerPhysics;
 			}
+			drawAll();
 			break;
 		}
 		default:
