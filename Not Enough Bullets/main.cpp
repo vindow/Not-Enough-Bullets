@@ -62,6 +62,9 @@ GLuint playersprite;
 GLuint enemy1sprite;
 GLuint enemy2sprite;
 GLuint background[2][240];
+std::vector<long long int> playerbitmap;
+std::vector<long long int> enemy1bitmap;
+std::vector<long long int> enemy2bitmap;
 
 void init() {
 	for (int i = 0; i<100; i++)
@@ -89,6 +92,7 @@ void init() {
 		}
 
 		ebox1->y = 56500 - (535 * i);
+		ebox1->bitmap = &enemy1bitmap;
 
 		struct EnemyData* enemy1 = new struct EnemyData;
 		enemy1->sprite = enemy1sprite;
@@ -122,6 +126,7 @@ void init() {
 			ebox2->x = 75;
 		}
 		ebox2->y = 56000 - (j * 530);
+		ebox2->bitmap = &enemy2bitmap;
 
 		struct EnemyData* enemy2 = new struct EnemyData;
 		enemy2->sprite = enemy2sprite;
@@ -134,6 +139,7 @@ void init() {
 	playerbox->w = playerw;
 	playerbox->x = 150;
 	playerbox->y = 60600;
+	playerbox->bitmap = &playerbitmap;
 
 	player->box = playerbox;
 
@@ -164,6 +170,7 @@ bool AABBIntersect(const AABB* box1, const AABB* box2)
 	return true;
 }
 
+
 void drawAll()
 {
 	int i;
@@ -190,37 +197,66 @@ void drawAll()
 	glDrawSprite(player->sprite, player->box->x - camera->x, player->box->y - camera->y, player->box->w, player->box->h);
 }
 
-bool checkPixCollision(AABB* b1, AABB* b2, AABB intersect, bool left, bool up) {
+bool checkPixCollision(AABB* b1, AABB* b2) {
+	//Get the intersect of the AABB collision
+	struct AABB intersect;
+	if (b1->x < b2->x) {
+		intersect.x = b2->x;
+	}
+	else {
+		intersect.x = b1->x;
+	}
+	if (b1->x + b1->w < b2->x + b2->w) {
+		intersect.w = b1->x + b1->w - intersect.x;
+	}
+	else {
+		intersect.w = b2->x + b2->w - intersect.x;
+	}
+	if (b1->y < b2->y) {
+		intersect.y = b2->y;
+	}
+	else {
+		intersect.y = b1->y;
+	}
+	if (b1->y + b1->h < b2->y + b2->h) {
+		intersect.h = b1->y + b1->h - intersect.y;
+	}
+	else {
+		intersect.h = b2->y + b2->h - intersect.y;
+	}
+
+	//check pixel perfect collision
 	int i;
 	long long int temp = 0;
 	std::vector<long long int> bitmap1 = *(b1->bitmap);
 	std::vector<long long int> bitmap2 = *(b2->bitmap);
-	if (up) {
+	if (b1->y + b1->h < b2->y + b2->h) { //box1 above box2 or box1 inside box2 on y-axis
 		for (i = 0; i < intersect.h; i++) {
-			if (left) {
-				temp = bitmap1[bitmap1.size() - intersect.h + i - 1] << (b1->w - intersect.w) & bitmap2[i];
+			if (b1->x + b1->w < b2->x + b2->w) { //box1 left of box2 or inside box2 on x-axis
+				temp = (bitmap1[bitmap1.size() - intersect.h + i] << (int)(b2->x + b2->w - b1->x - b1->w)) & bitmap2[i];
 			}
-			else {
-				temp = bitmap1[bitmap1.size() - intersect.h + i - 1] & bitmap2[i] << (b2->w - intersect.w);
+			else { //box1 right of box2 or encompasses box2 on x-axis
+				temp = (bitmap2[bitmap2.size() - intersect.h + i] << (int)(b1->x + b1->w - b2->x - b2->w)) & bitmap1[i];
 			}
 			if (temp != 0) {
 				return true;
 			}
 		}
 	}
-	else {
+	else { //box1 below box2 or box 1 encompasses box2 on y-axis (box 2 above box 1)
 		for (i = 0; i < intersect.h; i++) {
-			if (left) {
-				temp = bitmap2[bitmap2.size() - intersect.h + i - 1] & bitmap2[i] << (b1->w - intersect.w);
+			if (b2->x + b2->w < b1->x + b1->w) { //box2 left of box1 or inside box1 on x-axis
+				temp = (bitmap2[bitmap2.size() - intersect.h + i] << (int)(b1->x + b1->w - b2->x - b2->w)) & bitmap1[i];
 			}
-			else {
-				temp = bitmap2[bitmap2.size() - intersect.h + i - 1] << (b2->w - intersect.w) & bitmap2[i];
+			else { //box2 right of box1 or encompasses box1 on x-axis
+				temp = (bitmap1[bitmap1.size() - intersect.h + i] << (int)(b2->x + b2->w - b1->x - b1->w)) & bitmap2[i];
 			}
 			if (temp != 0) {
 				return true;
 			}
 		}
 	}
+	
 	return false;
 }
 
@@ -259,11 +295,11 @@ int main(void)
 	Uint8 prevKeys[SDL_NUM_SCANCODES] = { 0 };
 	const Uint8* currentKeys = SDL_GetKeyboardState(NULL);
 
-	playersprite = glTexImageTGAFile("playerShip3_green.tga", &playerw, &playerh);
+	playersprite = glTexImageTGAFileBitmap("playerShip3_green.tga", &playerw, &playerh, playerbitmap);
 	
-	enemy1sprite = glTexImageTGAFile("enemyBlack1.tga", &enemy1w, &enemy1h);
-
-	enemy2sprite = glTexImageTGAFile("enemyBlack2.tga", &enemy2w, &enemy2h);
+	enemy1sprite = glTexImageTGAFileBitmap("enemyBlack1.tga", &enemy1w, &enemy1h, enemy1bitmap);
+	
+	enemy2sprite = glTexImageTGAFileBitmap("enemyBlack2.tga", &enemy2w, &enemy2h, enemy2bitmap);
 
 	int playerlaserw = 0;
 	int playerlaserh = 0;
@@ -420,6 +456,7 @@ int main(void)
 						elaserbox->w = enemylaser8w;
 						elaserbox->x = enemies[i].box->x + enemies[i].box->w / 2;
 						elaserbox->y = enemies[i].box->y + enemies[i].box->h;
+						elaserbox->bitmap = &enemylaser8bitmap;
 
 						//create enemy laser and attach hitbox
 						struct Laser* elaser = new struct Laser;
@@ -481,29 +518,36 @@ int main(void)
 				for (i = 0; i < enemies.size(); i++) {
 					for (j = 0; j < plasers.size(); j++) {
 						if (AABBIntersect(enemies[i].box, plasers[j].box)) { //Player laser hits enemy
-							plasers[j] = plasers[plasers.size() - 1];
-							plasers.pop_back();
-							enemies[i] = enemies[enemies.size() - 1];
-							enemies.pop_back();
+							if (checkPixCollision(plasers[j].box, enemies[i].box)) {
+								plasers[j] = plasers[plasers.size() - 1];
+								plasers.pop_back();
+								enemies[i] = enemies[enemies.size() - 1];
+								enemies.pop_back();
+							}
 						}
 					}
 				}
 				for (i = 0; i < enemies.size(); i++) {
 					if (AABBIntersect(enemies[i].box, player->box)) { //Enemy hits player
-						enemies[i] = enemies[enemies.size() - 1];
-						enemies.pop_back();
-						player->box->x = 150;
-						player->box->y = camera->y + camera->h;
-						gameState = STATE_GAME_OVER;
+						if (checkPixCollision(enemies[i].box, player->box)) {
+							enemies[i] = enemies[enemies.size() - 1];
+							enemies.pop_back();
+							player->box->x = 150;
+							player->box->y = camera->y + camera->h;
+							gameState = STATE_GAME_OVER;
+						}
 					}
 				}
 				for (i = 0; i < elasers.size(); i++) {
 					if (AABBIntersect(player->box, elasers[i].box)) { //Enemy laser hits player
-						elasers[i] = elasers[elasers.size() - 1];
-						elasers.pop_back();
-						player->box->x = 150;
-						player->box->y = camera->y + camera->h;
-						gameState = STATE_GAME_OVER;
+						std::cout << "AABB Collision" << std::endl;
+						if (checkPixCollision(player->box, elasers[i].box)) {
+							elasers[i] = elasers[elasers.size() - 1];
+							elasers.pop_back();
+							player->box->x = 150;
+							player->box->y = camera->y + camera->h;
+							gameState = STATE_GAME_OVER;
+						}
 					}
 				}
 				prevPhysicsTick += ticksPerPhysics;
