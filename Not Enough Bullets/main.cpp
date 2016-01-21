@@ -61,7 +61,7 @@ StateType gameState = STATE_SPLASH_SCREEN;
 GLuint playersprite;
 GLuint enemy1sprite;
 GLuint enemy2sprite;
-GLuint background[2][240];
+GLuint background[4][240];
 std::vector<long long int> playerbitmap;
 std::vector<long long int> enemy1bitmap;
 std::vector<long long int> enemy2bitmap;
@@ -175,7 +175,7 @@ void drawAll()
 {
 	int i;
 	//draw the background that is onscreen
-	for (int i = 0; i < 2; i++) {
+	for (int i = 0; i < 4; i++) {
 		for (int j = floor(camera->y / tileh); j < floor(camera->y / tileh) + 4; j++) {
 			glDrawSprite(background[i][j], i * tilew - camera->x, j * tileh - camera->y, tileh, tilew);
 		}
@@ -273,7 +273,7 @@ int main(void)
 	SDL_Window* window = SDL_CreateWindow(
 		"TestSDL",
 		SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-		400, 600,
+		800, 600,
 		SDL_WINDOW_OPENGL);
 	if (!window) {
 		SDL_Quit();
@@ -328,12 +328,12 @@ int main(void)
 	camera->x = 0;
 	camera->y = 60000;
 	camera->h = 600;
-	camera->w = 400;
+	camera->w = 800;
 	
 	
-	glViewport(0, 0, 400, 600);
+	glViewport(0, 0, 800, 600);
 	glMatrixMode(GL_PROJECTION);
-	glOrtho(0, 400, 600, 0, 0, 1);
+	glOrtho(0, 800, 600, 0, 0, 1);
 	glEnable(GL_TEXTURE_2D);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -343,7 +343,7 @@ int main(void)
 
 
 	
-	for (int i = 0; i < 2; i++) {
+	for (int i = 0; i < 4; i++) {
 		for (int j = 0; j < 240; j++) {
 			background[i][j] = spaceTex;
 		}
@@ -374,14 +374,14 @@ int main(void)
 		case 0: //Splash Screen
 			glDrawSprite(splashScreen, 0, 0, splashscreenw, splashscreenh);
 			currentKeys = SDL_GetKeyboardState(NULL);
-			if (currentKeys[SDL_SCANCODE_SPACE]) {
+			if (currentKeys[SDL_SCANCODE_SPACE] && !prevKeys[SDL_SCANCODE_SPACE]) {
 				gameState = STATE_MAIN_MENU;
 			}
 			break;
 		case 1: //Main Menu
 			glDrawSprite(titlesprite, 0, 0, titlew, titleh);
 			currentKeys = SDL_GetKeyboardState(NULL);
-			if (currentKeys[SDL_SCANCODE_SPACE]) {
+			if (currentKeys[SDL_SCANCODE_SPACE] && !prevKeys[SDL_SCANCODE_SPACE]) {
 				gameState = STATE_PLAYING;
 				init();
 			}
@@ -389,7 +389,7 @@ int main(void)
 		case 2: //Game Over
 			glDrawSprite(gameoversprite, 0, 0, gameoverw, gameoverh);
 			currentKeys = SDL_GetKeyboardState(NULL);
-			if (currentKeys[SDL_SCANCODE_SPACE]) {
+			if (currentKeys[SDL_SCANCODE_SPACE] && !prevKeys[SDL_SCANCODE_SPACE]) {
 				gameState = STATE_PLAYING;
 				init();
 			}
@@ -505,8 +505,8 @@ int main(void)
 				if (player->box->x < 0) {
 					player->box->x = 0;
 				}
-				if (player->box->x > 400 - player->box->w) {
-					player->box->x = 400 - player->box->w;
+				if (player->box->x > 800 - player->box->w) {
+					player->box->x = 800 - player->box->w;
 				}
 				if (player->box->y > camera->y + camera->h - player->box->h) {
 					player->box->y = camera->y + camera->h - player->box->h;
@@ -540,7 +540,6 @@ int main(void)
 				}
 				for (i = 0; i < elasers.size(); i++) {
 					if (AABBIntersect(player->box, elasers[i].box)) { //Enemy laser hits player
-						std::cout << "AABB Collision" << std::endl;
 						if (checkPixCollision(player->box, elasers[i].box)) {
 							elasers[i] = elasers[elasers.size() - 1];
 							elasers.pop_back();
