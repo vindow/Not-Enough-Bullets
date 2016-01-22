@@ -24,6 +24,7 @@ struct EnemyData {
 };
 struct PlayerData {
 	GLuint sprite;
+	int lives;
 	AABB* box;
 };
 struct Laser {
@@ -55,13 +56,16 @@ int enemy1w;
 int enemy1h;
 int enemy2w;
 int enemy2h;
-int tilew = 40;
-int tileh = 40;
+int tilew;
+int tileh;
+int lifespritew;
+int lifespriteh;
 StateType gameState = STATE_SPLASH_SCREEN;
 GLuint playersprite;
 GLuint enemy1sprite;
 GLuint enemy2sprite;
 GLuint background[4][240];
+GLuint lifesprite;
 std::vector<long long int> playerbitmap;
 std::vector<long long int> enemy1bitmap;
 std::vector<long long int> enemy2bitmap;
@@ -142,6 +146,7 @@ void init() {
 	playerbox->bitmap = &playerbitmap;
 
 	player->box = playerbox;
+	player->lives = 3;
 
 	camera->x = 0;
 	camera->y = 60000;
@@ -195,6 +200,9 @@ void drawAll()
 	}
 	//draw the player
 	glDrawSprite(player->sprite, player->box->x - camera->x, player->box->y - camera->y, player->box->w, player->box->h);
+	for (i = 0; i < player->lives; i++) {
+		glDrawSprite(lifesprite, 790 - ((lifespritew + 5) * (i + 1)), 10, lifespritew, lifespriteh);
+	}
 }
 
 bool checkPixCollision(AABB* b1, AABB* b2) {
@@ -295,35 +303,37 @@ int main(void)
 	Uint8 prevKeys[SDL_NUM_SCANCODES] = { 0 };
 	const Uint8* currentKeys = SDL_GetKeyboardState(NULL);
 
-	playersprite = glTexImageTGAFileBitmap("playerShip3_green.tga", &playerw, &playerh, playerbitmap);
+	playersprite = glTexImageTGAFileBitmap("Assets/Sprites/playerShip3_green.tga", &playerw, &playerh, playerbitmap);
 	
-	enemy1sprite = glTexImageTGAFileBitmap("enemyBlack1.tga", &enemy1w, &enemy1h, enemy1bitmap);
+	enemy1sprite = glTexImageTGAFileBitmap("Assets/Sprites/enemyBlack1.tga", &enemy1w, &enemy1h, enemy1bitmap);
 	
-	enemy2sprite = glTexImageTGAFileBitmap("enemyBlack2.tga", &enemy2w, &enemy2h, enemy2bitmap);
+	enemy2sprite = glTexImageTGAFileBitmap("Assets/Sprites/enemyBlack2.tga", &enemy2w, &enemy2h, enemy2bitmap);
 
 	int playerlaserw = 0;
 	int playerlaserh = 0;
 	std::vector<long long int> playerlaserbitmap;
-	GLuint playerlasersprite = glTexImageTGAFileBitmap("laserGreen10.tga", &playerlaserw, &playerlaserh, playerlaserbitmap);
+	GLuint playerlasersprite = glTexImageTGAFileBitmap("Assets/Sprites/laserGreen10.tga", &playerlaserw, &playerlaserh, playerlaserbitmap);
 	
 	int enemylaser8w = 0;
 	int enemylaser8h = 0;
 	std::vector<long long int> enemylaser8bitmap;
-	GLuint enemylasersprite8 = glTexImageTGAFileBitmap("laserRed08.tga", &enemylaser8w, &enemylaser8h, enemylaser8bitmap);
+	GLuint enemylasersprite8 = glTexImageTGAFileBitmap("Assets/Sprites/laserRed08.tga", &enemylaser8w, &enemylaser8h, enemylaser8bitmap);
 
 	int splashscreenw = 0, splashscreenh = 0;
-	GLuint splashScreen = glTexImageTGAFile("SplashScreen.tga", &splashscreenw, &splashscreenh);
+	GLuint splashScreen = glTexImageTGAFile("Assets/Sprites/SplashScreen.tga", &splashscreenw, &splashscreenh);
 
 	int titlew = 0, titleh = 0;
-	GLuint titlesprite = glTexImageTGAFile("TitleScreen.tga", &titlew, &titleh);
+	GLuint titlesprite = glTexImageTGAFile("Assets/Sprites/TitleScreen.tga", &titlew, &titleh);
 
 	int victoryw = 0;
 	int victoryh = 0;
-	GLuint victorysprite = glTexImageTGAFile("YouWinScreen.tga", &victoryw, &victoryh);
+	GLuint victorysprite = glTexImageTGAFile("Assets/Sprites/YouWinScreen.tga", &victoryw, &victoryh);
 
 	int gameoverw = 0;
 	int gameoverh = 0;
-	GLuint gameoversprite = glTexImageTGAFile("GameOver.tga", &gameoverw, &gameoverh);
+	GLuint gameoversprite = glTexImageTGAFile("Assets/Sprites/GameOver.tga", &gameoverw, &gameoverh);
+
+	lifesprite = glTexImageTGAFile("Assets/Sprites/playerLife3_green.tga", &lifespritew, &lifespriteh);
 
 	camera->x = 0;
 	camera->y = 60000;
@@ -339,7 +349,7 @@ int main(void)
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glEnable(GL_ALPHA_TEST);
 	glAlphaFunc(GL_GREATER, 0.04);
-	GLuint spaceTex = glTexImageTGAFile("blue.tga", &tilew, &tileh);
+	GLuint spaceTex = glTexImageTGAFile("Assets/Sprites/blue.tga", &tilew, &tileh);
 
 
 	
@@ -534,7 +544,10 @@ int main(void)
 							enemies.pop_back();
 							player->box->x = 150;
 							player->box->y = camera->y + camera->h;
-							gameState = STATE_GAME_OVER;
+							player->lives -= 1;
+							if (player->lives == 0) {
+								gameState = STATE_GAME_OVER;
+							}
 						}
 					}
 				}
@@ -545,7 +558,10 @@ int main(void)
 							elasers.pop_back();
 							player->box->x = 150;
 							player->box->y = camera->y + camera->h;
-							gameState = STATE_GAME_OVER;
+							player->lives -= 1;
+							if (player->lives == 0) {
+								gameState = STATE_GAME_OVER;
+							}
 						}
 					}
 				}
