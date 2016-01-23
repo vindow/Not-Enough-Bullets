@@ -20,17 +20,20 @@ struct EnemyData {
 	GLuint sprite;
 	AABB* box;
 	int cooldown;
-	float movespeed;
+	float velocity;
 };
 struct PlayerData {
 	GLuint sprite;
 	int lives;
+	int powerTime;
+	float velocity;
 	AABB* box;
 };
 struct Laser {
 	GLuint sprite;
 	AABB* box;
 	int alliance;
+	float velocity;
 };
 
 enum StateType {
@@ -60,12 +63,19 @@ int tilew;
 int tileh;
 int lifespritew;
 int lifespriteh;
+int powerbarw;
+int powerbarh;
+int powerbarpiecew;
+int powerbarpieceh;
+float cameraVel;
 StateType gameState = STATE_SPLASH_SCREEN;
 GLuint playersprite;
 GLuint enemy1sprite;
 GLuint enemy2sprite;
 GLuint background[4][240];
 GLuint lifesprite;
+GLuint powerbarsprite;
+GLuint powerbarpiecesprite;
 std::vector<long long int> playerbitmap;
 std::vector<long long int> enemy1bitmap;
 std::vector<long long int> enemy2bitmap;
@@ -102,7 +112,7 @@ void init() {
 		enemy1->sprite = enemy1sprite;
 		enemy1->box = ebox1;
 		enemy1->cooldown = 0;
-		enemy1->movespeed = 2;
+		enemy1->velocity = 2;
 		enemies.push_back(*enemy1);
 
 	}
@@ -136,7 +146,7 @@ void init() {
 		enemy2->sprite = enemy2sprite;
 		enemy2->box = ebox2;
 		enemy2->cooldown = 0;
-		enemy2->movespeed = 2;
+		enemy2->velocity = 2;
 		enemies.push_back(*enemy2);
 	}
 	playerbox->h = playerh;
@@ -147,11 +157,14 @@ void init() {
 
 	player->box = playerbox;
 	player->lives = 3;
+	player->velocity = 3;
+	player->powerTime = 600;
 
 	camera->x = 0;
 	camera->y = 60000;
 	camera->h = 600;
 	camera->w = 400;
+	cameraVel = 5;
 }
 
 bool AABBIntersect(const AABB* box1, const AABB* box2)
@@ -185,14 +198,16 @@ void drawAll()
 			glDrawSprite(background[i][j], i * tilew - camera->x, j * tileh - camera->y, tileh, tilew);
 		}
 	}
-	//draw the player's lasers, kill offscreen ones, move live ones
-	for (i = 0; i < plasers.size(); i++) {
-		glDrawSprite(plasers[i].sprite, plasers[i].box->x - camera->x, plasers[i].box->y - camera->y, plasers[i].box->w, plasers[i].box->h);
+	//draw UI
+	for (i = 0; i < player->lives; i++) {
+		glDrawSprite(lifesprite, 790 - ((lifespritew + 5) * (i + 1)), 10, lifespritew, lifespriteh);
 	}
-	//draw enemy lasers, kill offscreen enemy lasers
-	for (i = 0; i < elasers.size(); i++) {
-		glDrawSprite(elasers[i].sprite, elasers[i].box->x - camera->x, elasers[i].box->y - camera->y, elasers[i].box->w, elasers[i].box->h);
+	glDrawSprite(powerbarsprite, 790 - powerbarw, 40, powerbarw, powerbarh);
+	int tmp = 10 - ((600 - player->powerTime) / 60);
+	for (i = 0; i < tmp; i++) {
+		glDrawSprite(powerbarpiecesprite, 792 - powerbarw + i * powerbarpiecew, 42, powerbarpiecew, powerbarpieceh);
 	}
+
 	//draw enemies that are onscreen
 	for (i = 0; i < enemies.size(); i++) {
 		if (AABBIntersect(camera, enemies[i].box))
@@ -200,8 +215,14 @@ void drawAll()
 	}
 	//draw the player
 	glDrawSprite(player->sprite, player->box->x - camera->x, player->box->y - camera->y, player->box->w, player->box->h);
-	for (i = 0; i < player->lives; i++) {
-		glDrawSprite(lifesprite, 790 - ((lifespritew + 5) * (i + 1)), 10, lifespritew, lifespriteh);
+	
+	//draw the player's lasers, kill offscreen ones, move live ones
+	for (i = 0; i < plasers.size(); i++) {
+		glDrawSprite(plasers[i].sprite, plasers[i].box->x - camera->x, plasers[i].box->y - camera->y, plasers[i].box->w, plasers[i].box->h);
+	}
+	//draw enemy lasers, kill offscreen enemy lasers
+	for (i = 0; i < elasers.size(); i++) {
+		glDrawSprite(elasers[i].sprite, elasers[i].box->x - camera->x, elasers[i].box->y - camera->y, elasers[i].box->w, elasers[i].box->h);
 	}
 }
 
@@ -335,11 +356,13 @@ int main(void)
 
 	lifesprite = glTexImageTGAFile("Assets/Sprites/playerLife3_green.tga", &lifespritew, &lifespriteh);
 
+	powerbarsprite = glTexImageTGAFile("Assets/Sprites/powerBar.tga", &powerbarw, &powerbarh);
+	powerbarpiecesprite = glTexImageTGAFile("Assets/Sprites/powerBarPiece.tga", &powerbarpiecew, &powerbarpieceh);
+
 	camera->x = 0;
 	camera->y = 60000;
 	camera->h = 600;
 	camera->w = 800;
-	
 	
 	glViewport(0, 0, 800, 600);
 	glMatrixMode(GL_PROJECTION);
@@ -417,19 +440,45 @@ int main(void)
 			} while (ticksPerFrame - (tick - prevTick) > 0);
 			prevTick = tick;
 
+			//Velocity multiplier for slow-mo
+			float velMul = 1;
+
 			//update/process input, move player
 			currentKeys = SDL_GetKeyboardState(NULL);
+			float xVel = player->velocity;
+			float yVel = player->velocity;
+			if (currentKeys[SDL_SCANCODE_UP] && (currentKeys[SDL_SCANCODE_LEFT] || currentKeys[SDL_SCANCODE_RIGHT])) {
+				if (!(currentKeys[SDL_SCANCODE_LEFT] && currentKeys[SDL_SCANCODE_RIGHT])) {
+					xVel *= sqrt(0.5);
+					yVel *= sqrt(0.5);
+				}
+			} else if (currentKeys[SDL_SCANCODE_DOWN] && (currentKeys[SDL_SCANCODE_LEFT] || currentKeys[SDL_SCANCODE_RIGHT])) {
+				if (!(currentKeys[SDL_SCANCODE_LEFT] && currentKeys[SDL_SCANCODE_RIGHT])) {
+					xVel *= sqrt(0.5);
+					yVel *= sqrt(0.5);
+				}
+			}
+			else {}
+
+			if (currentKeys[SDL_SCANCODE_LSHIFT] && player->powerTime > 0) {
+				velMul = 0.5;
+				player->powerTime -= 1;
+			}
+			else if (!currentKeys[SDL_SCANCODE_LSHIFT] && player->powerTime < 600) {
+				player->powerTime += 1;
+			}
+			else {}
 			if (currentKeys[SDL_SCANCODE_LEFT]) {
-				player->box->x -= 3;
+				player->box->x -= xVel;
 			}
 			if (currentKeys[SDL_SCANCODE_UP]) {
-				player->box->y -= 3;
+				player->box->y -= yVel;
 			}
 			if (currentKeys[SDL_SCANCODE_RIGHT]) {
-				player->box->x += 3;
+				player->box->x += xVel;
 			}
 			if (currentKeys[SDL_SCANCODE_DOWN]) {
-				player->box->y += 3;
+				player->box->y += yVel;
 			}
 			if (currentKeys[SDL_SCANCODE_SPACE] && firecooldown == 0) {
 				//create hitbox for laser
@@ -445,15 +494,17 @@ int main(void)
 				plaser->box = plaserbox;
 				plaser->sprite = playerlasersprite;
 				plaser->alliance = 0;
+				plaser->velocity = 20;
 
 				//add laser and reset shot cooldown
 				plasers.push_back(*plaser);
 				firecooldown = 20;
 			}
+			
 
 			//autoscroll camera and automove player to be level with camera
-			camera->y -= 5;
-			player->box->y -= 5;
+			camera->y -= cameraVel * velMul;
+			player->box->y -= cameraVel * velMul;
 
 			//move the NPCs, depsawn offscreen ones
 			int i;
@@ -473,12 +524,13 @@ int main(void)
 						elaser->alliance = 1;
 						elaser->box = elaserbox;
 						elaser->sprite = enemylasersprite8;
+						elaser->velocity = 0;
 
 						//add enemy laser to vector and reset shot cooldown
 						elasers.push_back(*elaser);
 						enemies[i].cooldown = 50;
 					}
-					enemies[i].box->y -= enemies[i].movespeed;
+					enemies[i].box->y -= enemies[i].velocity * velMul;
 				}
 				if (enemies[i].box->y > camera->h + camera->y) { //check if enemy is offscreen
 					enemies[i] = enemies[enemies.size() - 1];
@@ -487,7 +539,7 @@ int main(void)
 			}
 			//move player lasers and despawn offscreen ones
 			for (i = 0; i < plasers.size(); i++) {
-				plasers[i].box->y -= 20;
+				plasers[i].box->y -= plasers[i].velocity * velMul;
 				if (plasers[i].box->y < camera->y) {
 					plasers[i] = plasers[plasers.size() - 1];
 					plasers.pop_back();
@@ -545,6 +597,7 @@ int main(void)
 							player->box->x = 150;
 							player->box->y = camera->y + camera->h;
 							player->lives -= 1;
+							player->powerTime = 600;
 							if (player->lives == 0) {
 								gameState = STATE_GAME_OVER;
 							}
@@ -559,6 +612,7 @@ int main(void)
 							player->box->x = 150;
 							player->box->y = camera->y + camera->h;
 							player->lives -= 1;
+							player->powerTime = 600;
 							if (player->lives == 0) {
 								gameState = STATE_GAME_OVER;
 							}
